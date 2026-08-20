@@ -49,6 +49,16 @@ def metric_card(value, label, accent=""):
     )
 
 
+def research_notice(title, message, variant="info"):
+    st.markdown(
+        f'<div class="research-notice research-notice-{variant}">'
+        f'<div class="research-notice-mark">/</div>'
+        f'<div><div class="research-notice-title">{title}</div>'
+        f'<div class="research-notice-copy">{message}</div></div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def personality_profile(class_name):
     profiles = {
         "Extrovert": "A dataset-defined label associated with outward-facing visual patterns in the training corpus.",
@@ -165,8 +175,7 @@ def analysis_page():
     st.markdown('<div class="page-kicker"><div><div class="eyebrow">LIVE INFERENCE / RESEARCH RUN</div><h1>Analyze Handwriting</h1><p class="section-note">Upload one sample to generate a model-backed prediction and visual explanation.</p></div><div class="pill">MODEL OUTPUT / EXPERIMENTAL</div></div>', unsafe_allow_html=True)
     models = model_files()
     if not models:
-        st.error("No trained model is available for inference.")
-        st.info("Commit models/handwriting_personality_resnet50.keras or configure HANDWRITING_MODEL_URL in Streamlit secrets.")
+        research_notice("MODEL UNAVAILABLE", "No trained model is available for inference. Commit models/handwriting_personality_resnet50.keras or configure HANDWRITING_MODEL_URL in Streamlit secrets.", "neutral")
         return
     left, right = st.columns([1.15, .85], gap="large")
     with left:
@@ -195,7 +204,7 @@ def analysis_page():
                     st.session_state.analysis = result
                     st.session_state.history.insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "file": uploaded.name, "model": selected, "prediction": CLASS_NAMES[class_index], "confidence": round(float(probabilities[class_index]) * 100, 2)})
                 except Exception:
-                    st.error("This image could not be analyzed. Please try another supported handwriting image.")
+                    research_notice("ANALYSIS NOT COMPLETED", "This image could not be analyzed. Please try another supported handwriting image.", "neutral")
     result = st.session_state.analysis
     if result:
         probabilities = np.asarray(result["probabilities"])
@@ -228,14 +237,14 @@ def explanation_page():
     with tab_b: st.image(heatmap_only, use_container_width=True)
     with tab_c: st.image(heatmap, use_container_width=True)
     st.markdown('<div class="glass-card"><div class="eyebrow">READING THE MAP</div><h3>Spatial evidence, not psychological proof</h3><p class="muted">The heatmap shows regions with stronger gradient influence for the selected model output. It helps audit the visual input and model behavior; it does not establish a causal personality explanation.</p></div>', unsafe_allow_html=True)
-    st.warning("Grad-CAM highlights image regions that influenced the model prediction. It is an interpretability aid, not proof of a person's personality.")
+    research_notice("GRAD-CAM RESEARCH NOTE", "Grad-CAM highlights image regions that influenced the model prediction. It is an interpretability aid, not proof of a person's personality.", "info")
 
 
 def performance_page():
     st.markdown('<div class="page-kicker"><div><div class="eyebrow">EVALUATION LAB / EVIDENCE</div><h1>Model Performance</h1><p class="section-note">Only generated evaluation artifacts are shown here. No metrics are fabricated.</p></div><div class="pill">HELD-OUT TEST ARTIFACTS</div></div>', unsafe_allow_html=True)
     comparison_path = REPORTS_DIR / "model_comparison.csv"
     if not comparison_path.exists():
-        st.info("Train and evaluate a model first to populate this page.")
+        research_notice("EVALUATION ARTIFACTS NOT FOUND", "Train and evaluate a model first to populate this page.", "neutral")
         return
     comparison = pd.read_csv(comparison_path)
     selected = st.selectbox("Evaluation model", comparison["model"].tolist(), index=int(comparison["model"].tolist().index("resnet50")) if "resnet50" in comparison["model"].tolist() else 0)
@@ -257,7 +266,7 @@ def performance_page():
         if matrix_path.exists():
             st.image(str(matrix_path), use_container_width=True)
         else:
-            st.info("Confusion matrix not available for this model.")
+            research_notice("CONFUSION MATRIX UNAVAILABLE", "Confusion matrix not available for this model.", "neutral")
     with right:
         st.markdown('<div class="section-title">Training curves</div>', unsafe_allow_html=True)
         accuracy_path, loss_path = REPORTS_DIR / "accuracy.png", REPORTS_DIR / "loss.png"
@@ -265,7 +274,7 @@ def performance_page():
             st.image(str(accuracy_path), use_container_width=True)
             st.image(str(loss_path), use_container_width=True)
         else:
-            st.info("Training curves are not available. Train the model first.")
+            research_notice("TRAINING CURVES UNAVAILABLE", "Training curves are not available. Train the model first.", "neutral")
 
 
 def about_page():
@@ -277,7 +286,7 @@ def about_page():
     with right:
         card('<div class="eyebrow">DATASET</div><h3>3,227 image inventory</h3><p class="muted">Five dataset-defined classes: Extrovert, Introvert, Optimistic, Pessimistic, and Stable Mindset. Exact duplicates are removed from the evaluation split.</p><div class="eyebrow">LIMITATIONS</div><p class="muted">The dataset labels are not validated psychological traits. Writer identity metadata is unavailable, so generalization to unseen writers is uncertain. Image conditions, label quality, language, and demographic factors may influence results.</p>')
         card('<div class="eyebrow">FUTURE WORK</div><p class="muted">Writer-grouped validation, external testing, calibration, validated psychological labels, confidence intervals, and trained image-plus-feature fusion.</p>')
-    st.error("This is an experimental AI classification system, not a psychological diagnosis or definitive personality assessment.")
+    research_notice("RESEARCH DISCLAIMER", "This is an experimental AI classification system, not a psychological diagnosis or definitive personality assessment.", "disclaimer")
 
 
 def main():
