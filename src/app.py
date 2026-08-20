@@ -216,8 +216,39 @@ def analysis_page():
             for index in np.argsort(probabilities)[::-1][:3]:
                 st.markdown(f'<div class="profile-card" style="margin-bottom: .55rem; padding: .85rem 1rem;"><strong>{CLASS_NAMES[index].replace("_", " ")}</strong><span style="float: right; color: var(--blue-gray); font-weight: 700;">{probabilities[index] * 100:.2f}%</span><div class="confidence-meter" style="margin: .55rem 0 0;"><span style="width: {probabilities[index] * 100:.2f}%"></span></div></div>', unsafe_allow_html=True)
             st.markdown('<div class="section-title">Probability distribution</div>', unsafe_allow_html=True)
-            chart = px.bar(pd.DataFrame({"Class": [name.replace("_", " ") for name in CLASS_NAMES], "Probability": probabilities * 100}), x="Probability", y="Class", orientation="h", text_auto=".1f", color_discrete_sequence=["#6D8196"])
-            chart.update_layout(height=320, margin=dict(l=0, r=0, t=8, b=8), paper_bgcolor="#FFFFE3", plot_bgcolor="#FFFFE3", font_color="#4A4A4A", xaxis_title="Confidence (%)", yaxis_title="")
+            chart = px.bar(
+                pd.DataFrame({"Class": [name.replace("_", " ") for name in CLASS_NAMES], "Probability": probabilities * 100}),
+                x="Probability",
+                y="Class",
+                orientation="h",
+                text_auto=".1f",
+                color_discrete_sequence=["#6D8196"],
+            )
+            chart.update_traces(
+                marker_color="#6D8196",
+                textfont=dict(color="#4A4A4A", size=12),
+                textposition="outside",
+                cliponaxis=False,
+            )
+            chart.update_layout(
+                height=350,
+                margin=dict(l=12, r=28, t=48, b=24),
+                paper_bgcolor="#FFFFE3",
+                plot_bgcolor="#FFFFE3",
+                font=dict(color="#4A4A4A", size=12),
+                title=dict(text="Probability Distribution", font=dict(color="#4A4A4A", size=16), x=0.02, xanchor="left"),
+                xaxis=dict(
+                    title=dict(text="Confidence (%)", font=dict(color="#4A4A4A", size=12)),
+                    tickfont=dict(color="#4A4A4A", size=11),
+                    gridcolor="rgba(74, 74, 74, 0.16)",
+                    zerolinecolor="rgba(74, 74, 74, 0.22)",
+                ),
+                yaxis=dict(
+                    title=dict(text="", font=dict(color="#4A4A4A")),
+                    tickfont=dict(color="#4A4A4A", size=11),
+                    automargin=True,
+                ),
+            )
             st.markdown('<div class="chart-shell">', unsafe_allow_html=True)
             st.plotly_chart(chart, use_container_width=True, config={"displayModeBar": False})
             st.markdown('</div>', unsafe_allow_html=True)
