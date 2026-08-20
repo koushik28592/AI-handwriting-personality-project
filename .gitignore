@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+Dataset/
+**/Dataset/
+*.zip
+models/*.keras
+!models/handwriting_personality_resnet50.keras
+!models/class_names.json
+reports/*.png
+split_dataset/
+.streamlit/secrets.toml
+.DS_Store
