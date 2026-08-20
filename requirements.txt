@@ -5,5 +5,5 @@ numpy>=1.26,<2.1
 pandas
 Pillow
 opencv-python-headless
-streamlit
+streamlit==1.41.1
 plotly
