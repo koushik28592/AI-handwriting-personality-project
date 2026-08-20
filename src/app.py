@@ -49,6 +49,17 @@ def metric_card(value, label, accent=""):
     )
 
 
+def personality_profile(class_name):
+    profiles = {
+        "Extrovert": "A dataset-defined label associated with outward-facing visual patterns in the training corpus.",
+        "Introvert": "A dataset-defined label associated with inward-facing visual patterns in the training corpus.",
+        "Optimistic": "A dataset-defined label associated with positive-pattern annotations in the training corpus.",
+        "Pessimistic": "A dataset-defined label associated with negative-pattern annotations in the training corpus.",
+        "Stable_Mindset": "A dataset-defined label associated with steadiness annotations in the training corpus.",
+    }
+    return profiles.get(class_name, "A dataset-defined label inferred from the supplied handwriting image.")
+
+
 def cam_image(cam, shape):
     resized = cv2.resize(cam, (shape[1], shape[0]))
     ivory = np.array([255, 255, 227], dtype=np.float32)
@@ -128,15 +139,30 @@ def dashboard():
     for col, value, label, accent in zip(cols, ["3,227", "5", "ResNet50", "AI / DL"], ["Training images", "Personality classes", "Primary visual model", "Research stack"], ["dataset inventory", "dataset labels", "transfer learning", "image intelligence"]):
         with col:
             metric_card(value, label, accent)
+    st.markdown(
+        '<div class="research-strip">'
+        '<div class="research-strip-item"><div class="research-strip-label">Inference mode</div><div class="research-strip-value">Image classification</div></div>'
+        '<div class="research-strip-item"><div class="research-strip-label">Interpretability</div><div class="research-strip-value">Gradient activation mapping</div></div>'
+        '<div class="research-strip-item"><div class="research-strip-label">Evaluation frame</div><div class="research-strip-value">Held-out research evidence</div></div>'
+        '</div>', unsafe_allow_html=True,
+    )
     st.markdown('<div class="section-title">How the signal is modeled</div>', unsafe_allow_html=True)
     card('<div class="eyebrow">RESEARCH PIPELINE</div><h3>From visual trace to model output</h3><p class="muted">Handwriting is transformed into image representations and measurable visual features. The model learns patterns associated with the supplied dataset labels, while Grad-CAM provides a view into influential image regions.</p><span class="pill">RGB preprocessing</span><span class="pill">Transfer learning</span><span class="pill">OpenCV features</span><span class="pill">Macro F1 evaluation</span>')
+    st.markdown('<div class="section-title">Methodology at a glance</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="method-grid">'
+        '<div class="method-item"><div class="method-number">01 / INPUT</div><div class="method-heading">Normalize the trace</div><div class="method-copy">RGB conversion and fixed-size image preparation create a consistent inference surface.</div></div>'
+        '<div class="method-item"><div class="method-number">02 / MODEL</div><div class="method-heading">Read visual structure</div><div class="method-copy">A transfer-learned ResNet50 estimates probabilities across five dataset-defined labels.</div></div>'
+        '<div class="method-item"><div class="method-number">03 / EXPLAIN</div><div class="method-heading">Inspect influential regions</div><div class="method-copy">Grad-CAM exposes the spatial evidence that contributed to the selected output.</div></div>'
+        '</div>', unsafe_allow_html=True,
+    )
     if st.session_state.history:
         st.markdown('<div class="section-title">Current session</div>', unsafe_allow_html=True)
         st.dataframe(pd.DataFrame(st.session_state.history), use_container_width=True, hide_index=True)
 
 
 def analysis_page():
-    st.markdown('<div class="eyebrow">LIVE INFERENCE</div><h1>Analyze Handwriting</h1><p class="section-note">Upload one sample to generate a model-backed prediction and visual explanation.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-kicker"><div><div class="eyebrow">LIVE INFERENCE / RESEARCH RUN</div><h1>Analyze Handwriting</h1><p class="section-note">Upload one sample to generate a model-backed prediction and visual explanation.</p></div><div class="pill">MODEL OUTPUT / EXPERIMENTAL</div></div>', unsafe_allow_html=True)
     models = model_files()
     if not models:
         st.error("No trained model is available for inference.")
@@ -149,6 +175,7 @@ def analysis_page():
         uploaded = st.file_uploader("Drop a handwriting image here", type=["jpg", "jpeg", "png", "bmp", "webp"], label_visibility="visible")
         st.markdown('</div>', unsafe_allow_html=True)
         if uploaded:
+            st.markdown('<div class="eyebrow">INPUT PREVIEW</div>', unsafe_allow_html=True)
             image = Image.open(uploaded).convert("RGB")
             st.image(image, caption="Original sample", use_container_width=True)
             if st.button("✦  Analyze Handwriting", type="primary", use_container_width=True):
@@ -175,18 +202,22 @@ def analysis_page():
         class_index = int(result["class_index"])
         with right:
             st.markdown(f'<div class="result-card"><div class="result-label">Predicted personality</div><div class="result-name">{CLASS_NAMES[class_index].replace("_", " ")}</div><div class="result-confidence">{probabilities[class_index] * 100:.2f}% confidence · {result["model"]}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="profile-card"><div class="profile-title">Research interpretation</div><div class="profile-copy">{personality_profile(CLASS_NAMES[class_index])}</div><div class="confidence-meter"><span style="width: {probabilities[class_index] * 100:.2f}%"></span></div><div class="muted">Confidence signal: {probabilities[class_index] * 100:.2f}%</div></div>', unsafe_allow_html=True)
             st.markdown('<div class="section-title">Top 3 predictions</div>', unsafe_allow_html=True)
             for index in np.argsort(probabilities)[::-1][:3]:
-                st.write(f"**{CLASS_NAMES[index].replace('_', ' ')}**  ·  {probabilities[index] * 100:.2f}%")
+                st.markdown(f'<div class="profile-card" style="margin-bottom: .55rem; padding: .85rem 1rem;"><strong>{CLASS_NAMES[index].replace("_", " ")}</strong><span style="float: right; color: var(--blue-gray); font-weight: 700;">{probabilities[index] * 100:.2f}%</span><div class="confidence-meter" style="margin: .55rem 0 0;"><span style="width: {probabilities[index] * 100:.2f}%"></span></div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Probability distribution</div>', unsafe_allow_html=True)
             chart = px.bar(pd.DataFrame({"Class": [name.replace("_", " ") for name in CLASS_NAMES], "Probability": probabilities * 100}), x="Probability", y="Class", orientation="h", text_auto=".1f", color_discrete_sequence=["#6D8196"])
             chart.update_layout(height=320, margin=dict(l=0, r=0, t=8, b=8), paper_bgcolor="#FFFFE3", plot_bgcolor="#FFFFE3", font_color="#4A4A4A", xaxis_title="Confidence (%)", yaxis_title="")
+            st.markdown('<div class="chart-shell">', unsafe_allow_html=True)
             st.plotly_chart(chart, use_container_width=True, config={"displayModeBar": False})
+            st.markdown('</div>', unsafe_allow_html=True)
             report = json.dumps({"timestamp": datetime.now().isoformat(timespec="seconds"), "image": result["filename"], "model": result["model"], "prediction": CLASS_NAMES[class_index], "confidence": float(probabilities[class_index]), "probabilities": dict(zip(CLASS_NAMES, probabilities.tolist()))}, indent=2)
             st.download_button("↓  Download prediction report", report, file_name="handwriting_prediction.json", mime="application/json", use_container_width=True)
 
 
 def explanation_page():
-    st.markdown('<div class="eyebrow">MODEL INTERPRETABILITY</div><h1>AI Explanation</h1><p class="section-note">Inspect the visual regions that influenced the most recent model output.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-kicker"><div><div class="eyebrow">MODEL INTERPRETABILITY / XAI</div><h1>AI Explanation</h1><p class="section-note">Inspect the visual regions that influenced the most recent model output.</p></div><div class="pill">GRAD-CAM / SPATIAL EVIDENCE</div></div>', unsafe_allow_html=True)
     result = st.session_state.analysis
     if not result:
         card('<div class="eyebrow">NO ACTIVE ANALYSIS</div><h3>Run an analysis first</h3><p class="muted">The explanation workspace will populate after a handwriting sample is analyzed.</p>')
@@ -196,11 +227,12 @@ def explanation_page():
     with tab_a: st.image(original, use_container_width=True)
     with tab_b: st.image(heatmap_only, use_container_width=True)
     with tab_c: st.image(heatmap, use_container_width=True)
+    st.markdown('<div class="glass-card"><div class="eyebrow">READING THE MAP</div><h3>Spatial evidence, not psychological proof</h3><p class="muted">The heatmap shows regions with stronger gradient influence for the selected model output. It helps audit the visual input and model behavior; it does not establish a causal personality explanation.</p></div>', unsafe_allow_html=True)
     st.warning("Grad-CAM highlights image regions that influenced the model prediction. It is an interpretability aid, not proof of a person's personality.")
 
 
 def performance_page():
-    st.markdown('<div class="eyebrow">EVALUATION LAB</div><h1>Model Performance</h1><p class="section-note">Only generated evaluation artifacts are shown here. No metrics are fabricated.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-kicker"><div><div class="eyebrow">EVALUATION LAB / EVIDENCE</div><h1>Model Performance</h1><p class="section-note">Only generated evaluation artifacts are shown here. No metrics are fabricated.</p></div><div class="pill">HELD-OUT TEST ARTIFACTS</div></div>', unsafe_allow_html=True)
     comparison_path = REPORTS_DIR / "model_comparison.csv"
     if not comparison_path.exists():
         st.info("Train and evaluate a model first to populate this page.")
@@ -212,6 +244,7 @@ def performance_page():
     for col, label, key in zip(cols, ["Accuracy", "Precision", "Recall", "Macro F1", "Weighted F1"], ["accuracy", "precision_macro", "recall_macro", "macro_f1", "weighted_f1"]):
         with col:
             metric_card(f"{row[key] * 100:.1f}%" if pd.notna(row[key]) else "—", label, "held-out test")
+    st.markdown('<div class="research-strip"><div class="research-strip-item"><div class="research-strip-label">Selected architecture</div><div class="research-strip-value">Transfer-learned ResNet50</div></div><div class="research-strip-item"><div class="research-strip-label">Output space</div><div class="research-strip-value">Five dataset labels</div></div><div class="research-strip-item"><div class="research-strip-label">Evidence source</div><div class="research-strip-value">Generated evaluation artifacts</div></div></div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Model comparison</div>', unsafe_allow_html=True)
     comparison_display = comparison.copy()
     for column in ["accuracy", "balanced_accuracy", "macro_f1", "weighted_f1"]:
@@ -236,7 +269,7 @@ def performance_page():
 
 
 def about_page():
-    st.markdown('<div class="eyebrow">RESEARCH NOTES</div><h1>About Project</h1><p class="section-note">A transparent interface for an experimental cognitive modeling workflow.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-kicker"><div><div class="eyebrow">RESEARCH NOTES / PROJECT BRIEF</div><h1>About Project</h1><p class="section-note">A transparent interface for an experimental cognitive modeling workflow.</p></div><div class="pill">COGNITIVE SCIENCE / ML</div></div>', unsafe_allow_html=True)
     left, right = st.columns(2, gap="large")
     with left:
         card('<div class="eyebrow">OBJECTIVE</div><h3>Observable traces, careful claims</h3><p class="muted">The project explores whether image representations and measurable handwriting features can classify the labels available in the supplied dataset.</p><div class="eyebrow">COGNITIVE MODELING CONNECTION</div><p class="muted">Handwriting → observable behavioral patterns → feature representation → AI model → personality-related classification.</p>')
